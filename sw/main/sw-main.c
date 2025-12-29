@@ -33,7 +33,7 @@
 #include "sdkconfig.h"
 
 #include "pages.h"
-#include "iosevka-64-96.h"
+#include "iosevka.h"
 
 // pins  QFN40
 
@@ -92,7 +92,7 @@ typedef struct {
   uint16_t angle_correction;
   uint16_t prev_angle;
   uint32_t freq;
-  uint32_t freq_offset;
+  // uint32_t freq_offset;
   const void *config_ptr;
   uint8_t angle_buff[2];
 } state_t;
@@ -381,66 +381,57 @@ void fillScreen(esp_lcd_panel_handle_t panel_handle, uint16_t color) {
   vTaskDelay(pdMS_TO_TICKS(50)); // Wait 10ms
 }
 
-static const uint16_t freq_digit_xs[] = { 384, 320, 256, 160, 96, 32, 224 /* dot */};
+typedef struct {
+  uint16_t x;
+  uint8_t w;
+  uint8_t h;
+} freq_digit_t;
 
+static const freq_digit_t freqDigitSpecs[] = {
+  {440, 32, 48}, {408, 32, 48}, // HZ
+  {336, 64, 96}, {272, 64, 96}, {208, 64, 96}, // kHz
+  // dot x: 168
+  {128, 64, 96}, {64,  64, 96}, {0,   64, 96} // MHz
+};
 
-void printCenterMark(esp_lcd_panel_handle_t panel_handle) {
-  const uint16_t color = 0x5555; // grey
-  const uint16_t w = 64;
-  const uint16_t h = 96;
-  const uint16_t offsetX = 224 - 8;
-  const uint16_t offsetY = 224 - 62;
-  const uint16_t label_w = 64;
-  for (int y = 0; y < h; y++) {
-    for (int x = 0; x < w; x++) {
-      int digitByteSize = w * h / 8;
-      int idx = 10 * digitByteSize + (x / 8) + y * (w / 8);
-      uint8_t byte = iosevka_64_96[idx];
-      int bit = byte & (1 << (7 - (x % 8)));
+void drawLetter(int charCode, int x, int y, int w, int h, uint16_t color, uint16_t *screen_buffer, int buffer_w) {
+  for (int y1 = 0; y1 < h; y1++) {
+    for (int x1 = 0; x1 < w; x1++) {
+      int letterByteSize = w * h / 8;
+      int idx = charCode * letterByteSize + (x1 / 8) + y1 * (w / 8);
+      uint8_t byte = (h == 48) ? iosevka_32_48[idx] : iosevka_64_96[idx];
+      int bit = byte & (1 << (7 - (x1 % 8)));
       if (bit) {
-        screen_buffer[y * label_w + x] = color;
+        screen_buffer[y1 * buffer_w + x + x1] = color;
       } else {
-        screen_buffer[y * label_w + x] = 0x0000;
+        screen_buffer[y1 * buffer_w + x + x1] = 0x0000;
       }
     }
   }
-  // render full label
-  ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(
-    panel_handle, offsetX, offsetY, offsetX + label_w, offsetY + h, screen_buffer
-  ));
 }
 
 void printMainFreq(esp_lcd_panel_handle_t panel_handle, int val) {
-  // 6 digits, 64px wide, 128px high, 32px dot separator
-  // label size: 13*32=416px x 128px = 53248px < (65536px screen buffer)
   const uint16_t color = 0x7777; // grey
-  const uint16_t w = 64;
-  const uint16_t h = 96;
-  const uint16_t offsetX = 32;
-  const uint16_t offsetY = 224;
-  const uint16_t label_w = 416;
-  val = val / state.freq_offset;
-  for (int i = 0; i < 6; i++) { // LSB first
+  const uint16_t offsetX = 0;
+  const uint16_t offsetY = 208;
+  const uint16_t label_w = 480;
+  const uint16_t label_h = 96;
+  // clean screen buffer
+  for (int i = 0; i < label_w * label_h; i++) {
+    screen_buffer[i] = 0x0000;
+  }
+  // draw MHz dot separator
+  drawLetter(10, 184, 0, 32, 48, color, screen_buffer, label_w);
+  val = val / 10;
+  for (int i = 0; i < 8; i++) { // LSB first
     int digit = val % 10;
     val /= 10;
-    int x1 = freq_digit_xs[i] - offsetX;
-    for (int y = 0; y < h; y++) {
-      for (int x = 0; x < w; x++) {
-        int digitByteSize = w * h / 8;
-        int idx = digit * digitByteSize + (x / 8) + y * (w / 8);
-        uint8_t byte = iosevka_64_96[idx];
-        int bit = byte & (1 << (7 - (x % 8)));
-        if (bit) {
-          screen_buffer[y * label_w + x + x1] = color;
-        } else {
-          screen_buffer[y * label_w + x + x1] = 0x0000;
-        }
-      }
-    }
+    auto digitSpec = freqDigitSpecs[i];
+    drawLetter(digit, digitSpec.x, 0, digitSpec.w, digitSpec.h, color, screen_buffer, label_w);
   }
   // render full label
   ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(
-    panel_handle, offsetX, offsetY, offsetX + label_w, offsetY + h, screen_buffer
+    panel_handle, offsetX, offsetY, offsetX + label_w, offsetY + label_h, screen_buffer
   ));
   // vTaskDelay(pdMS_TO_TICKS(50)); // Wait 10ms
 }
@@ -466,6 +457,24 @@ void line(
   }
 }
 
+void printCenterMark(esp_lcd_panel_handle_t panel_handle) {
+  const uint16_t color = 0x0fff; // yellow
+  const uint16_t offsetX = 240 - 1;
+  const uint16_t offsetY = 100;
+  const uint16_t label_w = 2;
+  const uint16_t label_h = 100;
+  // fill with color
+  for (int i = 0; i < label_w * label_h; i++) {
+    screen_buffer[i] = color;
+  }
+  // line(7, 0, 7, 300, color, screen_buffer, label_w, label_h);
+  // line(8, 0, 8, 300, color, screen_buffer, label_w, label_h);
+  // render full label
+  ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(
+    panel_handle, offsetX, offsetY, offsetX + label_w, offsetY + label_h, screen_buffer
+  ));
+}
+
 void radiant(int angle, int r1, int r2, int offsetX, int offsetY, uint16_t color, uint16_t *screen_buffer, int w, int h) {
   if (abs(angle) > 1600 && abs(angle) < (16384 - 1600)) { // skip marks that are too far away
     return;
@@ -480,7 +489,7 @@ void radiant(int angle, int r1, int r2, int offsetX, int offsetY, uint16_t color
   line(x1, y1, x2, y2, color, screen_buffer, w, h);
 }
 
-void printVernierMarks(esp_lcd_panel_handle_t panel_handle, int angle) {
+void printVernierMarks(esp_lcd_panel_handle_t panel_handle, int freq) {
   const uint16_t color = 0x0fff; // yellow
   const uint16_t w = 384; // screen buffer width
   const uint16_t h = 152; // screen buffer height
@@ -492,26 +501,52 @@ void printVernierMarks(esp_lcd_panel_handle_t panel_handle, int angle) {
   for (int i = 0; i < w * h; i++) {
     screen_buffer[i] = 0x0000;
   }
-  // angle marks around rotary encoder
-  for (int i = 0; i < 10; i++) { // maximum 16 marks
-    int mark_angle = i * 16384 / 10; // 14bit angle
-    int mark_angle_diff = mark_angle - angle;
-    for (int j = -1; j < 2; j++) { // 3px wide mark
-      radiant(mark_angle_diff + j * 12, offsetCircle + h, offsetCircle + h * 1 / 4, w / 2, -offsetCircle, color, screen_buffer, w, h);
+  // +-20MHz marks
+  int range = 20; // range of marks
+  int step = 100; // 100Hz
+  // const uint32_t from = (freq - range) / step * step; // floor to nearest step
+  // const uint32_t to = (freq + range);
+  for (int i = -range; i < range; i++) {
+    int delta = i * step; // expected marks -2MHz ... +2MHz
+    int err = (freq - delta) % step; // error from expected mark
+    int deltaf = delta + err; // makrs corrected to the step
+    int angle = deltaf;
+    int f = deltaf - freq;
+    int r2 = offsetCircle + h;
+    int r1;
+    if ((f / 1000 * 1000) == f) {
+      r1 = offsetCircle + (h * 1 / 4); // long marks
+      radiant(angle + 10, r1, r2, w / 2, -offsetCircle, color, screen_buffer, w, h);
+      radiant(angle - 10, r1, r2, w / 2, -offsetCircle, color, screen_buffer, w, h);
+    } else
+    if ((f / 500 * 500) == f) {
+      r1 = offsetCircle + (h * 1 / 2); // medium marks
+    } else {
+      r1 = offsetCircle + (h * 3 / 4); // short marks
     }
+    radiant(angle, r1, r2, w / 2, -offsetCircle, color, screen_buffer, w, h);
   }
-  // 1/2 marks
-  for (int i = 0; i < 20; i++) { // maximum 16 marks
-    int mark_angle = i * 16384 / 20; // 14bit angle
-    int mark_angle_diff = mark_angle - angle;
-    radiant(mark_angle_diff, offsetCircle + h, offsetCircle + h / 2, w / 2, -offsetCircle, color, screen_buffer, w, h);
-  }
-  // 1/10 marks
-  for (int i = 0; i < 100; i++) { // maximum 16 marks
-    int mark_angle = i * 16384 / 100; // 14bit angle
-    int mark_angle_diff = mark_angle - angle;
-    radiant(mark_angle_diff, offsetCircle + h, offsetCircle + h * 3 / 4, w /2, -offsetCircle, color, screen_buffer, w, h);
-  }
+
+  // // angle marks around rotary encoder
+  // for (int i = 0; i < 10; i++) { // maximum 16 marks
+  //   int mark_angle = i * 16384 / 10; // 14bit angle
+  //   int mark_angle_diff = mark_angle - angle;
+  //   for (int j = -1; j < 2; j++) { // 3px wide mark
+  //     radiant(mark_angle_diff + j * 12, offsetCircle + h, offsetCircle + h * 1 / 4, w / 2, -offsetCircle, color, screen_buffer, w, h);
+  //   }
+  // }
+  // // 1/2 marks
+  // for (int i = 0; i < 20; i++) { // maximum 16 marks
+  //   int mark_angle = i * 16384 / 20; // 14bit angle
+  //   int mark_angle_diff = mark_angle - angle;
+  //   radiant(mark_angle_diff, offsetCircle + h, offsetCircle + h / 2, w / 2, -offsetCircle, color, screen_buffer, w, h);
+  // }
+  // // 1/10 marks
+  // for (int i = 0; i < 100; i++) { // maximum 16 marks
+  //   int mark_angle = i * 16384 / 100; // 14bit angle
+  //   int mark_angle_diff = mark_angle - angle;
+  //   radiant(mark_angle_diff, offsetCircle + h, offsetCircle + h * 3 / 4, w /2, -offsetCircle, color, screen_buffer, w, h);
+  // }
   ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(
     panel_handle, offsetX, offsetY, offsetX + w, offsetY + h, screen_buffer
   ));
@@ -602,6 +637,7 @@ void app_main(void) {
   // fill with black
   fillScreen(panel_handle, 0x0000);
   printCenterMark(panel_handle);
+  vTaskDelay(pdMS_TO_TICKS(10)); // Wait 100ms
   // printMainFreq(panel_handle, 145678);
 
   // for (int y = 0; y < 6; y++) {
@@ -709,8 +745,8 @@ void app_main(void) {
 
   // initial state
   state.prev_angle = 0; // first time
-  state.freq_offset = 16384 / 100;
-  state.freq = 146000 * state.freq_offset;
+  // state.freq_offset = 16384 / 100;
+  state.freq = 433000000;
   state.angle_correction = 16384 - 600;
   while(1) {
     // read MT6701 encoder
@@ -744,7 +780,7 @@ void app_main(void) {
     state.prev_angle = state.angle;
     state.freq += angle_delta;
 
-    printVernierMarks(panel_handle, state.angle);
+    printVernierMarks(panel_handle, state.freq);
     vTaskDelay(pdMS_TO_TICKS(20));
     printMainFreq(panel_handle, state.freq);
     vTaskDelay(pdMS_TO_TICKS(20));
