@@ -81,13 +81,6 @@ static const sh8601_lcd_init_cmd_t lcd_init_cmds[] = {
 };
 
 typedef struct {
-  // int val_azim;
-  // int val_elev;
-  // int raw_azim;
-  // int raw_elev;
-  // int tgt_azim;
-  // int tgt_elev;
-  // uint8_t acc_buff[6];
   uint16_t angle;
   uint16_t angle_correction;
   uint16_t prev_angle;
@@ -433,7 +426,6 @@ void printMainFreq(esp_lcd_panel_handle_t panel_handle, int val) {
   ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(
     panel_handle, offsetX, offsetY, offsetX + label_w, offsetY + label_h, screen_buffer
   ));
-  // vTaskDelay(pdMS_TO_TICKS(50)); // Wait 10ms
 }
 
 void line(
@@ -467,9 +459,6 @@ void printCenterMark(esp_lcd_panel_handle_t panel_handle) {
   for (int i = 0; i < label_w * label_h; i++) {
     screen_buffer[i] = color;
   }
-  // line(7, 0, 7, 300, color, screen_buffer, label_w, label_h);
-  // line(8, 0, 8, 300, color, screen_buffer, label_w, label_h);
-  // render full label
   ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(
     panel_handle, offsetX, offsetY, offsetX + label_w, offsetY + label_h, screen_buffer
   ));
@@ -527,26 +516,6 @@ void printVernierMarks(esp_lcd_panel_handle_t panel_handle, int freq) {
     radiant(angle, r1, r2, w / 2, -offsetCircle, color, screen_buffer, w, h);
   }
 
-  // // angle marks around rotary encoder
-  // for (int i = 0; i < 10; i++) { // maximum 16 marks
-  //   int mark_angle = i * 16384 / 10; // 14bit angle
-  //   int mark_angle_diff = mark_angle - angle;
-  //   for (int j = -1; j < 2; j++) { // 3px wide mark
-  //     radiant(mark_angle_diff + j * 12, offsetCircle + h, offsetCircle + h * 1 / 4, w / 2, -offsetCircle, color, screen_buffer, w, h);
-  //   }
-  // }
-  // // 1/2 marks
-  // for (int i = 0; i < 20; i++) { // maximum 16 marks
-  //   int mark_angle = i * 16384 / 20; // 14bit angle
-  //   int mark_angle_diff = mark_angle - angle;
-  //   radiant(mark_angle_diff, offsetCircle + h, offsetCircle + h / 2, w / 2, -offsetCircle, color, screen_buffer, w, h);
-  // }
-  // // 1/10 marks
-  // for (int i = 0; i < 100; i++) { // maximum 16 marks
-  //   int mark_angle = i * 16384 / 100; // 14bit angle
-  //   int mark_angle_diff = mark_angle - angle;
-  //   radiant(mark_angle_diff, offsetCircle + h, offsetCircle + h * 3 / 4, w /2, -offsetCircle, color, screen_buffer, w, h);
-  // }
   ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(
     panel_handle, offsetX, offsetY, offsetX + w, offsetY + h, screen_buffer
   ));
@@ -620,7 +589,6 @@ void app_main(void) {
   // ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, true));
   // ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, true));
 
-
   // user can flush pre-defined pattern to the screen before we turn on the screen or backlight
   ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 
@@ -638,24 +606,6 @@ void app_main(void) {
   fillScreen(panel_handle, 0x0000);
   printCenterMark(panel_handle);
   vTaskDelay(pdMS_TO_TICKS(10)); // Wait 100ms
-  // printMainFreq(panel_handle, 145678);
-
-  // for (int y = 0; y < 6; y++) {
-  //   for (int x = 0; x < 6; x++) {
-  //     const int w = 5 * 16;
-  //     for (int i = 0; i < (w * w); i++) {
-  //       // checkerboard 30% grey vs 70% grey
-  //       uint16_t color = ((x & 1) ^ (y & 1)) ? 0x2222 : 0xaaaa;
-  //       screen_buffer[i] = color;
-  //     }
-  //     int x1 = x * w;
-  //     int y1 = y * w;
-  //     int x2 = x1 + w; x2 = (x2 > 480) ? 480 : x2;
-  //     int y2 = y1 + w; y2 = (y2 > 466) ? 466 : y2;
-  //     ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(panel_handle, x1, y1, x2, y2, screen_buffer));
-  //     vTaskDelay(pdMS_TO_TICKS(20)); // Wait 100ms
-  //   }
-  // }
 
   // color format: 565  bbbbbRRRRRRggggg
   // green: 0x001f
@@ -663,62 +613,6 @@ void app_main(void) {
   // blue: 0xf800
 
 
-
-
-
-
-
-
-  // if (i2c_master_transmit(dev_handle_enc, &reg, 1, 100) != ESP_OK) { ESP_LOGI(TAG, "I2C Error"); };
-  // if (i2c_master_transmit(dev_handle_acc, (uint8_t[]){CTRL_REG1_A, 0x47}, 2, 100) != ESP_OK) { ESP_LOGI(TAG, "I2C Error"); };
-
-  // GPIO
-  // gpio_config_t io_conf = {
-  //   .intr_type = GPIO_INTR_DISABLE,
-  //   .mode = GPIO_MODE_INPUT,
-  //   .pull_up_en = 0,
-  //   .pull_down_en = 0
-  // };
-
-  // io_conf.mode = GPIO_MODE_INPUT,
-  // io_conf.pin_bit_mask = (1ULL << RAZIM);
-  // gpio_config(&io_conf);
-  // io_conf.pin_bit_mask = (1ULL << RELEV);
-  // gpio_config(&io_conf);
-
-  // io_conf.mode = GPIO_MODE_OUTPUT;
-  // io_conf.pin_bit_mask = (1ULL << CW);
-  // gpio_config(&io_conf);
-  // io_conf.pin_bit_mask = (1ULL << CCW);
-  // gpio_config(&io_conf);
-  // io_conf.pin_bit_mask = (1ULL << UP);
-  // gpio_config(&io_conf);
-  // io_conf.pin_bit_mask = (1ULL << DOWN);
-  // gpio_config(&io_conf);
-
-  // ADC
-  // adc_oneshot_unit_handle_t adc_handle;
-
-  // adc_oneshot_unit_init_cfg_t init_config = {
-  //   .unit_id = ADC_UNIT_1,
-  //   .ulp_mode = ADC_ULP_MODE_DISABLE,
-  // };
-
-  // ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
-
-  // adc_oneshot_chan_cfg_t azim_chan_config = {
-  //   .bitwidth = ADC_BITWIDTH_DEFAULT,
-  //   .atten = ADC_ATTEN_DB_12, // 0, 2_5, 6, 12
-  // };
-
-  // ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CHANNEL_0, &azim_chan_config));
-
-  // adc_oneshot_chan_cfg_t elev_chan_config = {
-  //   .bitwidth = ADC_BITWIDTH_DEFAULT,
-  //   .atten = ADC_ATTEN_DB_12, // 0, 2_5, 6, 12
-  // };
-
-  // ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CHANNEL_2, &elev_chan_config));
 
   {
     //Initialize NVS
@@ -740,14 +634,11 @@ void app_main(void) {
   // server = start_webserver();
   start_webserver();
 
-  // state.tgt_azim = 122000;
-  // state.tgt_elev = 22000;
 
   // initial state
   state.prev_angle = 0; // first time
-  // state.freq_offset = 16384 / 100;
-  state.freq = 433000000;
-  state.angle_correction = 16384 - 600;
+  state.freq = 433000000; // [Hz]
+  state.angle_correction = 16384 - 600; // first prototype
   while(1) {
     // read MT6701 encoder
     uint8_t reg = ANGLE13_6_REG;
