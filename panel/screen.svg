@@ -1,0 +1,20 @@
+<svg width="385" height="120" viewBox="0 0 385 120" unit="mm"
+  version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <!-- Central LCD assembly -->
+  <g id="screen" transform="translate(110, 10)">
+    <!-- panel PCB -->
+    <g id="panel-pcb" transform="translate(-6, -2)">
+      <rect x="0" y="0" width="177" height="104" rx="2" fill="#333" id="panel-pcb-body" />
+      <!-- 4 x M3 mounting holes in corners -->
+      <circle cx="3" cy="3" r="2" fill="#000" id="panel-hole-tl"/>
+      <circle cx="3" cy="101" r="2" fill="#000" id="panel-hole-bl"/>
+      <circle cx="174" cy="3" r="2" fill="#000" id="panel-hole-tr"/>
+      <circle cx="174" cy="101" r="2" fill="#000" id="panel-hole-br"/>
+    </g>
+    <!-- 7" LCD panel -->
+    <g id="lcd-panel" transform="translate(0, 0)">
+      <rect x="0" y="0" width="165" height="100" fill="#222" id="panel-glass" />
+      <rect x="4" y="5" width="155" height="86" fill="#000" id="panel-view-port" />
+    </g>
+  </g>
+</svg>
