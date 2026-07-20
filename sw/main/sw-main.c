@@ -676,30 +676,5 @@ void app_main(void) {
     printMainFreq(panel_handle, state.freq);
     vTaskDelay(pdMS_TO_TICKS(20));
 
-    // ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &state.raw_azim));
-    // ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, ADC_CHANNEL_2, &state.raw_elev));
-    // state.val_azim = state.raw_azim * 125 -210000;
-    // state.val_elev = state.raw_elev * 33   -10000;
-
-    // int dif_azim = state.val_azim - state.tgt_azim;
-    // if (abs(dif_azim) < 4000) {
-    //     gpio_set_level(CW, 0); gpio_set_level(CCW, 0);
-    // } else {
-    //   if (dif_azim < 0) {
-    //     gpio_set_level(CW, 1); gpio_set_level(CCW, 0);
-    //   } else {
-    //     gpio_set_level(CW, 0); gpio_set_level(CCW, 1);
-    //   }
-    // }
-    // int dif_elev = state.val_elev - state.tgt_elev;
-    // if (abs(dif_elev) < 4000) {
-    //   gpio_set_level(UP, 0); gpio_set_level(DOWN, 0);
-    // } else {
-    //   if (dif_elev < 0) {
-    //     gpio_set_level(UP, 1); gpio_set_level(DOWN, 0);
-    //   } else {
-    //     gpio_set_level(UP, 0); gpio_set_level(DOWN, 1);
-    //   }
-    // }
   }
 }
