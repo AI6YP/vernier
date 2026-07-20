@@ -31,14 +31,14 @@ const main = (r, $) => {
   shape = (
     [[1,1], [-1,1], [-1,-1], [1,-1]].reduce((res, [x, y]) => res
       .fillet(8, (e) => e.containsPoint([x * 40, y * 40, 1])),
-      makeBaseBox(80,80,2)
+      makeBaseBox(80,80,3)
     )
   )
 
   // bearing spacer ring
   shape = shape.fuse(
-    makeCylinder($.bearingInnerD / 2 + 3, 4)
-      .cut(makeCylinder($.bearingInnerD / 2 + 0.1, 4))
+    makeCylinder($.bearingInnerD / 2 + 3, 5)
+      .cut(makeCylinder($.bearingInnerD / 2 + 0.1, 5))
   )
 
   // piedestal bottom hole
